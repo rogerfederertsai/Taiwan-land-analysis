@@ -1,0 +1,9 @@
+streamlit
+pandas
+matplotlib
+seaborn
+folium
+geopandas
+streamlit-folium
+openpyxl
+xlrd
