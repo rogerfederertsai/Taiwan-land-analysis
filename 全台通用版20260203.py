@@ -7,33 +7,32 @@ import folium
 import geopandas as gpd
 from streamlit_folium import st_folium
 import os
+import io  # ✨ 新增：用於處理圖片下載流
 
 # 1. 網頁基本設定
 st.set_page_config(page_title="全台實價登錄分析系統", layout="wide")
 
-# --- 2. 字體與路徑處理 (已修正為相容 GitHub/Streamlit Cloud 版本) ---
-# 取得目前程式碼檔案所在的資料夾絕對路徑
+# --- 2. 字體與路徑處理 ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# 組合路徑：請確保 GitHub 上的資料夾名稱為小寫 'information'
 font_path = os.path.join(BASE_DIR, 'NotoSansTC-Regular.ttf')
 geojson_path = os.path.join(BASE_DIR, 'information', 'TOWN_MOI_1140318.json')
 
-# 除錯監控：如果檔案不見了，網頁會直接噴出紅字告訴你路徑哪裡錯
-if not os.path.exists(geojson_path):
-    st.sidebar.error(f"❌ 找不到地圖檔！預期路徑：{geojson_path}")
-if not os.path.exists(font_path):
-    st.sidebar.error(f"❌ 找不到字體檔！預期路徑：{font_path}")
-
-# 字體載入邏輯
 if os.path.exists(font_path):
     fm.fontManager.addfont(font_path)
     font_prop = fm.FontProperties(fname=font_path)
     plt.rcParams['font.sans-serif'] = [font_prop.get_name()]
 else:
+    st.sidebar.error("❌ 找不到字體檔")
     font_prop = None
 
 plt.rcParams['axes.unicode_minus'] = False
+
+# ✨ 新增：下載圖片的輔助函式
+def get_image_download(fig, filename):
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", bbox_inches='tight', dpi=300)
+    buf.seek(0)
+    return buf
 
 # --- 3. 核心邏輯 ---
 st.title("🏙️ 全台實價登錄分析系統")
@@ -47,15 +46,11 @@ if uploaded_file:
     price_col = next((c for c in df.columns if any(k in str(c) for k in ['總價元'])), None)
 
     if area_col:
-        # --- ✨ 關鍵修正 1：多重縣市偵測邏輯 ---
-        # 1. 先掃描「地址」欄位
-        # 2. 如果沒抓到，改掃描「行政區」欄位
-        # 3. 如果還是沒抓到，嘗試從檔名抓取 (針對您提供的檔案)
         detect_text = "".join(df[addr_col].dropna().astype(str).head(50)) + \
                       "".join(df[area_col].dropna().astype(str).head(10)) + \
                       uploaded_file.name
             
-        current_city = "臺南市" # 預設值
+        current_city = "臺南市"
         all_cities = ["臺北市", "新北市", "桃園市", "臺中市", "臺南市", "高雄市", "基隆市", "新竹市", "嘉義市", "新竹縣", "苗栗縣", "彰化縣", "南投縣", "雲林縣", "嘉義縣", "屏東縣", "宜蘭縣", "花蓮縣", "臺東縣", "澎湖縣", "金門縣", "連江縣"]
         
         for city in all_cities:
@@ -66,7 +61,6 @@ if uploaded_file:
         target_city_ta = current_city.replace("臺", "台")
         target_city_tai = current_city.replace("台", "臺")
         
-        # ✨ 關鍵修正 2：統計回歸「鄉鎮市區」欄位，並清理前綴
         df['Clean_Area'] = df[area_col].astype(str).str.replace(f"^{target_city_tai}|^{target_city_ta}", "", regex=True).str.strip()
         total_count = len(df)
 
@@ -81,15 +75,14 @@ if uploaded_file:
             title_bar1 = st.text_input("成交排行標題：", f"🏆 {current_city}成交量前十名行政區")
             fig1, ax1 = plt.subplots(figsize=(10, 7))
             sns.barplot(x=top_10.values, y=top_10.index, hue=top_10.index, palette='viridis', ax=ax1, legend=False)
-            
-            # 修正：移除 Y 軸標題 "Clean_Area"
             ax1.set_ylabel("") 
-            
             max_v1 = top_10.max()
             for i, v in enumerate(top_10.values):
                 ax1.text(v + (max_v1 * 0.015), i, f'{int(v)}筆 ({ (v/total_count*100):.1f}%)', va='center', ha='left', fontproperties=font_prop)
             ax1.set_title(title_bar1, fontproperties=font_prop, fontsize=16)
             st.pyplot(fig1)
+            # ✨ 下載按鈕 1
+            st.download_button("📥 下載成交排行圖", data=get_image_download(fig1, "bar1.png"), file_name=f"{current_city}_成交排行.png", mime="image/png")
 
         with c2:
             title_pie1 = st.text_input("成交比例標題：", f"📈 {current_city}成交比例 (Top 10+其他)")
@@ -105,6 +98,8 @@ if uploaded_file:
             ax_p1.text(0, 0, f'成交總筆數\n{total_count}筆', ha='center', va='center', fontproperties=font_prop, fontsize=15, fontweight='bold')
             ax_p1.set_title(title_pie1, fontproperties=font_prop, fontsize=16)
             st.pyplot(fig_p1)
+            # ✨ 下載按鈕 2
+            st.download_button("📥 下載成交比例圖", data=get_image_download(fig_p1, "pie1.png"), file_name=f"{current_city}_成交比例.png", mime="image/png")
 
         # --- 第二部分：成交總價區間 ---
         st.divider()
@@ -125,14 +120,15 @@ if uploaded_file:
                 ax2.set_yticks(y_pos)
                 ax2.set_yticklabels(labels, fontproperties=font_prop)
                 ax2.invert_yaxis() 
-                ax2.set_ylabel("") # 移除 Y 軸標題
-                
+                ax2.set_ylabel("")
                 max_v2 = price_stats.max()
                 for i, v in enumerate(price_stats.values):
                     pct = (v / len(p_data) * 100).round(1)
                     ax2.text(v + (max_v2 * 0.02), i, f'{int(v)}筆 ({pct}%)', va='center', ha='left', fontproperties=font_prop)
                 ax2.set_title(title_bar2, fontproperties=font_prop, fontsize=16)
                 st.pyplot(fig2)
+                # ✨ 下載按鈕 3
+                st.download_button("📥 下載總價區間圖", data=get_image_download(fig2, "bar2.png"), file_name=f"{current_city}_總價區間.png", mime="image/png")
 
             with c4:
                 title_pie2 = st.text_input("價格比例標題：", f"🪙 {current_city}成交總價比例")
@@ -143,8 +139,10 @@ if uploaded_file:
                 ax_p2.text(0, 0, f'有效樣本\n{len(p_data)}筆', ha='center', va='center', fontproperties=font_prop, fontsize=15, fontweight='bold')
                 ax_p2.set_title(title_pie2, fontproperties=font_prop, fontsize=16)
                 st.pyplot(fig_p2)
+                # ✨ 下載按鈕 4
+                st.download_button("📥 下載總價比例圖", data=get_image_download(fig_p2, "pie2.png"), file_name=f"{current_city}_總價比例.png", mime="image/png")
 
-        # --- 第三部分：互動式地圖 (包含零成交標註) ---
+        # --- 第三部分：互動式地圖 ---
         st.divider()
         st.subheader(f"🗺️ {current_city} 行政區成交地理分佈")
         
@@ -178,30 +176,19 @@ if uploaded_file:
                 ).add_to(m)
 
                 stats_dict = map_stats.set_index('區名').to_dict('index')
-                
                 for _, row in gdf.iterrows():
                     town = row['TOWNNAME']
                     centroid = row.geometry.centroid
+                    display_text = f"{int(stats_dict[town]['筆數'])}筆 ({stats_dict[town]['比例']}%)" if town in stats_dict else "0筆 (0.0%)"
                     
-                    # ✨ 關鍵修正 3：即使零成交也要顯示標註
-                    if town in stats_dict:
-                        s = stats_dict[town]
-                        display_text = f"{int(s['筆數'])}筆 ({s['比例']}%)"
-                    else:
-                        display_text = "0筆 (0.0%)"
-                    
-                    label_html = f"""
-                    <div style="font-family: 'Microsoft JhengHei', 'Noto Sans TC'; text-align: center; pointer-events: none; 
-                        width: 120px; color: black; text-shadow: 1px 1px 2px white, -1px -1px 2px white;">
-                        <div style="font-size: 1.1vw; font-weight: 900;">{town}</div>
-                        <div style="font-size: 0.9vw; font-weight: bold;">{display_text}</div>
-                    </div>"""
+                    label_html = f"""<div style="font-family: 'Noto Sans TC'; text-align: center; width: 120px; color: black; text-shadow: 1px 1px 2px white;">
+                                     <div style="font-size: 1.1vw; font-weight: 900;">{town}</div>
+                                     <div style="font-size: 0.9vw; font-weight: bold;">{display_text}</div></div>"""
                     folium.Marker(location=[centroid.y, centroid.x],
                         icon=folium.DivIcon(icon_size=(120, 40), icon_anchor=(60, 20), html=label_html)
                     ).add_to(m)
 
                 st_folium(m, width="100%", height=650, key=f"map_{current_city}", returned_objects=[])
-            else:
-                st.warning(f"⚠️ 在地圖檔中找不到 {current_city} 的邊界資料。")
+                st.info("💡 地圖為互動式 HTML，目前不支援直接匯出為靜態圖，建議使用截圖保存。")
 
     st.success("✅ 數據分析完成！")
