@@ -37,10 +37,12 @@ def get_image_download(fig, filename):
 # --- 3. 核心邏輯 ---
 st.title("🏙️ 全台實價登錄分析系統")
 
-uploaded_file = st.sidebar.file_uploader("請上傳內政部 Excel", type=['xls', 'xlsx'])
-
-if uploaded_file:
+uploaded_file = st.sidebar.file_uploader("請上傳內政部資料", type=['xls', 'xlsx', 'csv'])
+if uploaded_file.name.endswith('.csv'):
+    df = pd.read_csv(uploaded_file)
+else:
     df = pd.read_excel(uploaded_file, sheet_name=0, skiprows=[1])
+
     area_col = next((c for c in df.columns if any(k in str(c) for k in ['鄉鎮市區', '行政區'])), None)
     addr_col = next((c for c in df.columns if any(k in str(c) for k in ['土地位置', '建物門牌'])), None)
     price_col = next((c for c in df.columns if any(k in str(c) for k in ['總價元'])), None)
@@ -181,7 +183,7 @@ if uploaded_file:
                     centroid = row.geometry.centroid
                     display_text = f"{int(stats_dict[town]['筆數'])}筆 ({stats_dict[town]['比例']}%)" if town in stats_dict else "0筆 (0.0%)"
                     
-                    label_html = f"""<div style="font-family: 'Noto Sans TC'; text-align: center; width: 120px; color: black; text-shadow: 1px 1px 2px white;">
+                    label_html = f"""<div style="font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif; text-align: center; width: 120px; color: black; text-shadow: 1px 1px 2px white;">
                                      <div style="font-size: 1.1vw; font-weight: 900;">{town}</div>
                                      <div style="font-size: 0.9vw; font-weight: bold;">{display_text}</div></div>"""
                     folium.Marker(location=[centroid.y, centroid.x],
