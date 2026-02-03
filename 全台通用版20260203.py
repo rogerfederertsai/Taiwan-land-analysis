@@ -82,7 +82,7 @@ if uploaded_file:
             ax1.set_title(title_bar1, fontproperties=font_prop, fontsize=16)
             st.pyplot(fig1)
             # ✨ 下載按鈕 1
-            st.download_button("📥 下載成交排行圖", data=get_image_download(fig1, "bar1.png"), file_name=f"{current_city}_成交排行.png", mime="image/png")
+            st.download_button("📥 下載此圖", data=get_image_download(fig1, "bar1.png"), file_name=f"{current_city}_成交排行.png", mime="image/png")
 
         with c2:
             title_pie1 = st.text_input("成交比例標題：", f"📈 {current_city}成交比例 (Top 10+其他)")
@@ -99,7 +99,7 @@ if uploaded_file:
             ax_p1.set_title(title_pie1, fontproperties=font_prop, fontsize=16)
             st.pyplot(fig_p1)
             # ✨ 下載按鈕 2
-            st.download_button("📥 下載成交比例圖", data=get_image_download(fig_p1, "pie1.png"), file_name=f"{current_city}_成交比例.png", mime="image/png")
+            st.download_button("📥 下載此圖", data=get_image_download(fig_p1, "pie1.png"), file_name=f"{current_city}_成交比例.png", mime="image/png")
 
         # --- 第二部分：成交總價區間 ---
         st.divider()
@@ -128,7 +128,7 @@ if uploaded_file:
                 ax2.set_title(title_bar2, fontproperties=font_prop, fontsize=16)
                 st.pyplot(fig2)
                 # ✨ 下載按鈕 3
-                st.download_button("📥 下載總價區間圖", data=get_image_download(fig2, "bar2.png"), file_name=f"{current_city}_總價區間.png", mime="image/png")
+                st.download_button("📥 下載此圖", data=get_image_download(fig2, "bar2.png"), file_name=f"{current_city}_總價區間.png", mime="image/png")
 
             with c4:
                 title_pie2 = st.text_input("價格比例標題：", f"🪙 {current_city}成交總價比例")
@@ -140,7 +140,7 @@ if uploaded_file:
                 ax_p2.set_title(title_pie2, fontproperties=font_prop, fontsize=16)
                 st.pyplot(fig_p2)
                 # ✨ 下載按鈕 4
-                st.download_button("📥 下載總價比例圖", data=get_image_download(fig_p2, "pie2.png"), file_name=f"{current_city}_總價比例.png", mime="image/png")
+                st.download_button("📥 下載此圖", data=get_image_download(fig_p2, "pie2.png"), file_name=f"{current_city}_總價比例.png", mime="image/png")
 
         # --- 第三部分：互動式地圖 ---
         st.divider()
