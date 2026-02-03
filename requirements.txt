@@ -7,3 +7,4 @@ geopandas
 streamlit-folium
 openpyxl
 xlrd
+pyogrio

@@ -9,25 +9,34 @@ from streamlit_folium import st_folium
 import os
 
 # 1. 網頁基本設定
-st.set_page_config(page_title="房地產數據分析系統", layout="wide")
+st.set_page_config(page_title="全台實價登錄分析系統", layout="wide")
 
-# --- 2. 字體與路徑處理 ---
-current_dir = os.path.dirname(os.path.abspath(__file__))
-font_path = os.path.join(current_dir, 'NotoSansTC-Regular.ttf')
-geojson_path = os.path.join(current_dir, 'information', 'TOWN_MOI_1140318.json')
+# --- 2. 字體與路徑處理 (已修正為相容 GitHub/Streamlit Cloud 版本) ---
+# 取得目前程式碼檔案所在的資料夾絕對路徑
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# 組合路徑：請確保 GitHub 上的資料夾名稱為小寫 'information'
+font_path = os.path.join(BASE_DIR, 'NotoSansTC-Regular.ttf')
+geojson_path = os.path.join(BASE_DIR, 'information', 'TOWN_MOI_1140318.json')
+
+# 除錯監控：如果檔案不見了，網頁會直接噴出紅字告訴你路徑哪裡錯
+if not os.path.exists(geojson_path):
+    st.sidebar.error(f"❌ 找不到地圖檔！預期路徑：{geojson_path}")
+if not os.path.exists(font_path):
+    st.sidebar.error(f"❌ 找不到字體檔！預期路徑：{font_path}")
+
+# 字體載入邏輯
 if os.path.exists(font_path):
     fm.fontManager.addfont(font_path)
     font_prop = fm.FontProperties(fname=font_path)
     plt.rcParams['font.sans-serif'] = [font_prop.get_name()]
 else:
-    st.sidebar.error("❌ 找不到字體檔")
     font_prop = None
 
-plt.rcParams['axes.unicode_minus'] = False 
+plt.rcParams['axes.unicode_minus'] = False
 
 # --- 3. 核心邏輯 ---
-st.title("🏙️ 房地產數據分析系統")
+st.title("🏙️ 全台實價登錄分析系統")
 
 uploaded_file = st.sidebar.file_uploader("請上傳內政部 Excel", type=['xls', 'xlsx'])
 
